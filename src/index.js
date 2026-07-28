@@ -6,4 +6,7 @@ app.listen(process.env.port,()=>
 {
     console.log(`http://localhost:${process.env.port}`)
 })
+}).catch((e)=>
+{
+    console.log("opps some error occured!!!")
 })
