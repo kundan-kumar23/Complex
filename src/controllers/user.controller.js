@@ -38,10 +38,11 @@ const register = async (req,res)=>
      }
 
      let avatar = await uploadOnCloudinary(avatarLocalPath)
-     if(coverImageLocalPath)
-     {
-        let coverImage = await uploadOnCloudinary(coverImageLocalPath);
-     }
+   let coverImage;
+
+if (coverImageLocalPath) {
+    coverImage = await uploadOnCloudinary(coverImageLocalPath);
+}
      
 
      if(!avatar)
@@ -77,6 +78,7 @@ const register = async (req,res)=>
      })
     
     }catch(e){
+        console.log(e)
        return res.status(500).json({
         error : "internal server error"
        })
