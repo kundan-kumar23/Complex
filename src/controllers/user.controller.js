@@ -1,6 +1,8 @@
 const User = require("../models/user.model")
 const { uploadOnCloudinary } = require("../utils/cloudinary")
-
+const isPasswordCorrect = require("../models/user.model")
+const accessToken = require("../models/user.model")
+const refreshToken = require("../models/user.model")
 const register = async (req,res)=>
 {
     try{
@@ -91,4 +93,86 @@ if (coverImageLocalPath) {
     }
 }
 
-module.exports = register
+const login = async(req,res)=>
+{
+    try{
+
+        const {username,email,password} = req.body;
+
+        if(!username || !email)
+        {
+            return res.status(400).json({
+                error : "please provide username and email"
+            })
+        }
+
+        const user  = await User.findOne({
+            $or:[
+                {email},
+                {username}
+            ]
+        })
+        if(!user)
+        {
+            return res.status(400).json({
+                error : "user not found"
+            })
+        }
+
+       let isMatch = await user.isPasswordCorrect(password)
+    // let isMatch = await bcrypt.compare(password,user.password)
+    if(!isMatch){
+        return res.status(400).json({
+            error : "invalid credentials"
+        })
+    }
+
+    const acessToken = user.generateAcessToken()
+    const refreshToken = user.generateRefreshToken()
+
+    user.refreshToken = refreshToken;
+    await user.save({validateBeforeSave : false})
+
+    const logginuser = await User.findById(user._id).select("-password -refreshToken")
+
+    const options = {
+        httpOnly: true,
+        secure : true,
+    }
+    return res.status(200).cookie("acessToken",acessToken,options).cookie("refreshToken",refreshToken,options).json({
+        sucess : "login sucessfully",
+        data : {logginuser,acessToken,refreshToken}
+    })
+
+    }catch(e){
+        return res.status(500).json({
+            error : "internal server error"
+        })
+    }
+}
+
+const logout = async(req,res)=>
+    {
+        await User.findByIdAndUpdate(req.user._id,{
+            $set:{
+                refreshToken : undefined
+            }
+        }
+    ,
+            {
+              new : true  
+            })
+
+        const options = {
+        httpOnly: true,
+        secure : true,
+    }
+
+            return res.status(200).clearCookie("acessToken",options).clearCookie("refreshToken",options).json({
+                sucess : "logout sucessfully"
+            })
+    }
+
+
+
+module.exports = { register, login,logout }
