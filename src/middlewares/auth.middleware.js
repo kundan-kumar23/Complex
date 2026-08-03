@@ -1,33 +1,38 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
-export const authMiddleware = async (req,res,next)=>
-{
-    try{
-   
-    const token = req.cookies.acessToken
 
-    if(!token)
-    {
-        return res.status(400).json({
-            error : "unauthorised access"
-        })
-    }
+const authMiddleware = async (req, res, next) => {
+    try {
+        const token = req.cookies.acessToken;
 
-    let decode = await jwt.verify(token,process.env.ACCESS_TOKEN_SECRET);
-    let user = await User.findById(decode._id).select("-password -refreshToken")
-    if(!user)
-    {
-        return res.status(400).json({
-            error : "unauthorised access"
-        })
+        if (!token) {
+            return res.status(401).json({
+                error: "Unauthorized access",
+            });
+        }
+
+        const decoded = jwt.verify(
+            token,
+            process.env.ACCESS_TOKEN_SECRET
+        );
+
+        const user = await User.findById(decoded._id).select(
+            "-password -refreshToken"
+        );
+
+        if (!user) {
+            return res.status(401).json({
+                error: "Unauthorized access",
+            });
+        }
+
+        req.user = user;
+        next();
+    } catch (error) {
+        return res.status(401).json({
+            error: "Unauthorized access",
+        });
     }
-    req.user = user;
-    next();
-         
-    }catch(e)
-    {
-        return res.status(400).json({
-            error : "unauthorised access"
-        })
-    }
-}
+};
+
+module.exports = authMiddleware;
