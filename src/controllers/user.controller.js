@@ -169,9 +169,6 @@ const logout = async (req, res) => {
     });
 };
 
-const jwt = require("jsonwebtoken");
-const User = require("../models/user.model");
-
 const refreshAccessToken = async (req, res) => {
   try {
     const incomingRefreshToken = req.cookies.refreshToken;
@@ -181,14 +178,11 @@ const refreshAccessToken = async (req, res) => {
         error: "Refresh token is required",
       });
     }
-
-    // Verify refresh token
     const decodedToken = jwt.verify(
       incomingRefreshToken,
       process.env.REFRESH_TOKEN_SECRET
     );
 
-    // Find user
     const user = await User.findById(decodedToken._id);
 
     if (!user) {
@@ -196,26 +190,20 @@ const refreshAccessToken = async (req, res) => {
         error: "User not found",
       });
     }
-
-    // Compare with stored refresh token
     if (incomingRefreshToken !== user.refreshToken) {
       return res.status(401).json({
         error: "Invalid refresh token",
       });
     }
 
-    // Generate new tokens
     const accessToken = user.generateAccessToken();
     const newRefreshToken = user.generateRefreshToken();
-
-    // Save new refresh token in DB
     user.refreshToken = newRefreshToken;
     await user.save({ validateBeforeSave: false });
 
     const options = {
       httpOnly: true,
-      secure: true, // Use false during local development if not using HTTPS
-      sameSite: "strict",
+      secure: true,
     };
 
     return res
