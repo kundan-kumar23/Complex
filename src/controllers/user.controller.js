@@ -226,4 +226,170 @@ const refreshAccessToken = async (req, res) => {
   }
 };
 
-module.exports = { register, login, logout, refreshAccessToken };
+
+
+const changePassword = async (req, res) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+
+        if (!oldPassword || !newPassword) {
+            return res.status(400).json({
+                error: "Please provide old and new passwords"
+            });
+        }
+
+        const user = await User.findById(req.user._id);
+
+        if (!user) {
+            return res.status(401).json({
+                error: "Invalid credentials"
+            });
+        }
+
+        const isMatch = await user.isPasswordCorrect(oldPassword);
+
+        if (!isMatch) {
+            return res.status(401).json({
+                error: "Invalid old password"
+            });
+        }
+
+        user.password = newPassword;
+
+        await user.save({
+            validateBeforeSave: false
+        });
+
+        return res.status(200).json({
+            success: "Password updated successfully"
+        });
+
+    } catch (err) {
+      console.log(err)
+        return res.status(500).json({
+            error: "Internal server error"
+        });
+    }
+};
+
+
+const updateavatar = async(req,res)=>
+{
+  try{
+
+    let localavatarpath = req.file?.path
+    if(!localavatarpath)
+    {
+      return res.status(400).json({
+        error : "please provide path"
+      })
+    }
+
+    let avatarImage = await uploadOnCloudinary(localavatarpath);
+    if(!avatarImage?.url){
+      return res.status(400).json({
+        error : "internal server error"
+      })
+    }
+
+    let resuser = await User.findByIdAndUpdate(req.user?._id,{
+       $set:{
+        avatar : avatarImage.url
+       }
+    },{
+      new : true
+    }).select("-password -refreshToken")
+
+    return res.status(200).json({
+      success : "sucessfully changed avatar"
+    })
+
+  }catch(e){
+    return res.status(500).json({
+      error : "internal server error"
+    })
+  }
+}
+
+const updatecover = async(req,res)=>
+{
+  try{
+
+    let localcoverpath = req.file?.path
+    if(!localcoverpath)
+    {
+      return res.status(400).json({
+        error : "please provide path"
+      })
+    }
+
+    let coverImage = await uploadOnCloudinary(localcoverpath);
+    if(!coverImage?.url){
+      return res.status(400).json({
+        error : "internal server error"
+      })
+    }
+
+    let resuser = await User.findByIdAndUpdate(req.user?._id,{
+       $set:{
+        coverImage : coverImage.url
+       }
+    },{
+      new : true
+    }).select("-password -refreshToken")
+
+    return res.status(200).json({
+      success : "sucessfully changed coverImage"
+    })
+
+  }catch(e){
+    return res.status(500).json({
+      error : "internal server error"
+    })
+  }
+}
+
+
+const updateProfile = async(req,res)=>
+{
+    try {
+      let {fullname,email} = req.body;
+  
+      if([fullname,email].some((e)=>e.trim() == ""))
+      {
+        return res.status(400).json({
+          error : "please provide all field"
+        })
+      }
+  
+     let updateduser = await User.findByIdAndUpdate(req.user?._id,{
+        $set:{
+          fullname,
+          email
+     }
+      },
+    {
+      new : true
+    }).select("-password -refreshToken")
+  
+    if(!updateduser)
+    {
+      return res.status(401).json({
+        error : "something went wrong"
+      })
+    }
+  
+    return res.status(200).json({
+      sucess : "sucessfully updated"
+    })
+    } catch (error) {
+      return res.status(500).json({
+        error : "internal server error"
+      })
+    }
+}
+
+
+
+
+module.exports = { register, login, logout, refreshAccessToken, changePassword,updateavatar, updatecover,updateProfile };
